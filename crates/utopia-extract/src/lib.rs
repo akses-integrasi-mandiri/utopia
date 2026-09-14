@@ -377,9 +377,11 @@ pub fn build_messages_with_opening(
             of values that hold in that period.\n\
          {temporal_note}\n\
          4. {time_ctx}\n\
-         5. \"sentence\" is the number of the sentence in the Text block that states the fact: \
-            [S3] is 3. A fact that takes adjacent sentences gives them as a list, [3,4]. Only the \
-            Text block is numbered; the opening of the document is never cited. Every fact needs one.\n\
+         5. \"sentence\" says where you read the fact: a sentence of the Text block by its \
+            number, [S3] is 3, and adjacent sentences as a list, [3,4]. Facts come from the Text \
+            block. When what you are about to write is stated only in the opening, cite that \
+            opening sentence by its label, \"O2\" — it is extracted with its own part. Never cite \
+            a Text sentence that does not state the fact. Every fact needs one.\n\
          6. confidence in 0~1: 0.9 explicitly stated, 0.7 inferred, 0.5 uncertain.\n\
          7. If nothing can be extracted, output {{\"entities\":[],\"facts\":[]}}.\n\
          8. If no listed relation fits, do not force the nearest one — write the predicate the \
@@ -464,22 +466,27 @@ pub fn build_messages_with_opening(
 ///
 /// 按字符截：不会截断一个字符，但会截在词中间——英文的最后一个词可能只剩半个
 fn opening_block(opening: Option<&str>) -> String {
-    let Some(text) = opening.map(str::trim).filter(|t| !t.is_empty()) else {
+    let Some((cut, truncated)) = opening_cut(opening) else {
         return String::new();
     };
-    let cut: String = text.chars().take(OPENING_BUDGET_CHARS).collect();
-    let more = if cut.chars().count() < text.chars().count() {
-        " …"
-    } else {
-        ""
-    };
+    let more = if truncated { " …" } else { "" };
     format!(
         "\nOpening of this document, for context only (do not extract facts from it; they are \
-         extracted from that part separately). Use it to know what the text below belongs to — \
-         which agreement, company or event it concerns, who the parties are, and the date it \
-         takes effect — so that facts in the text below attach to the right entity and carry \
-         the right dates:\n\"\"\"\n{cut}{more}\n\"\"\"\n"
+         extracted from that part separately; its sentences are labelled [O1], [O2], …). Use it \
+         to know what the text below belongs to — which agreement, company or event it \
+         concerns, who the parties are, and the date it takes effect — so that facts in the \
+         text below attach to the right entity and carry the right dates:\n\"\"\"\n{}{more}\n\"\"\"\n",
+        labelled_text(&cut, 'O')
     )
+}
+
+/// 进提示词的那段开头：去掉首尾空白、按字符截到预算。提示词里的 `[O…]` 编号与
+/// [`ground`] 取回开头原句用的是同一段字
+fn opening_cut(opening: Option<&str>) -> Option<(String, bool)> {
+    let text = opening.map(str::trim).filter(|t| !t.is_empty())?;
+    let cut: String = text.chars().take(OPENING_BUDGET_CHARS).collect();
+    let truncated = cut.chars().count() < text.chars().count();
+    Some((cut, truncated))
 }
 
 /// 清单里给关系带的标记：事件 `[event]`、恒常 `[eternal]`；状态不标。
@@ -559,6 +566,13 @@ fn sentences(text: &str) -> Vec<(usize, &str)> {
 /// 东西。报编号只要几个 token，原句由服务端按编号从正文里取——取回来的一定是正文里的字，
 /// 比抄的还可靠
 pub fn numbered_text(text: &str) -> String {
+    labelled_text(text, 'S')
+}
+
+/// 逐句带上 `[{label}n]`。正文用 S，文件开头用 O——开头也得有号可报：它没有号的时候，
+/// 模型从开头读到的事实只能随手报一个正文的号，取回来的是一句不相干的话（签名表的空行），
+/// 开头串味的检查也就认不出它了
+fn labelled_text(text: &str, label: char) -> String {
     use unicode_segmentation::UnicodeSegmentation;
     let mut out = String::with_capacity(text.len() + text.len() / 16);
     let mut n = 0usize;
@@ -566,7 +580,7 @@ pub fn numbered_text(text: &str) -> String {
     for piece in text.split_sentence_bounds() {
         if !piece.trim().is_empty() {
             n += 1;
-            out.push_str(&format!("[S{n}] "));
+            out.push_str(&format!("[{label}{n}] "));
         }
         out.push_str(piece);
     }
@@ -575,35 +589,50 @@ pub fn numbered_text(text: &str) -> String {
 
 /// 句号 → 原文。一个数或相邻几句的数组；超出范围、写不成数的返回 None。
 /// 数组取最小到最大那一段连续原文，于是取回来的一定是正文的一个子串
-fn cited(text: &str, sentences: &[(usize, &str)], cite: &serde_json::Value) -> Option<String> {
-    let number = |v: &serde_json::Value| -> Option<usize> {
+fn cited(text: &str, opening: &str, cite: &serde_json::Value) -> Option<String> {
+    // (是不是开头, 第几句)：数字与 "S3" 是正文，"O2" 是开头
+    let label = |v: &serde_json::Value| -> Option<(bool, usize)> {
         match v {
-            serde_json::Value::Number(n) => n.as_u64().map(|n| n as usize),
-            // 模型偶尔照提示词里的记号写成 "S3"
-            serde_json::Value::String(s) => s.trim().trim_start_matches(['S', 's']).parse().ok(),
+            serde_json::Value::Number(n) => n.as_u64().map(|n| (false, n as usize)),
+            serde_json::Value::String(s) => {
+                let s = s.trim();
+                let from_opening = s.starts_with(['O', 'o']);
+                let n = s.trim_start_matches(['S', 's', 'O', 'o']).parse().ok()?;
+                Some((from_opening, n))
+            }
             _ => None,
         }
     };
-    let numbers: Vec<usize> = match cite {
-        serde_json::Value::Array(items) => items.iter().map(number).collect::<Option<_>>()?,
-        other => vec![number(other)?],
+    let labels: Vec<(bool, usize)> = match cite {
+        serde_json::Value::Array(items) => items.iter().map(label).collect::<Option<_>>()?,
+        other => vec![label(other)?],
     };
-    let (lo, hi) = (*numbers.iter().min()?, *numbers.iter().max()?);
+    let from_opening = labels.first()?.0;
+    if labels.iter().any(|(o, _)| *o != from_opening) {
+        return None;
+    }
+    let source = if from_opening { opening } else { text };
+    let sentences = sentences(source);
+    let lo = labels.iter().map(|(_, n)| *n).min()?;
+    let hi = labels.iter().map(|(_, n)| *n).max()?;
     if lo == 0 || hi > sentences.len() {
         return None;
     }
     let (start, _) = sentences[lo - 1];
     let (last_start, last) = sentences[hi - 1];
-    Some(text[start..last_start + last.len()].trim().to_string())
+    Some(source[start..last_start + last.len()].trim().to_string())
 }
 
 /// 把模型按句号、句柄写的回复补全成下游认的样子：`quote` 按句号从正文取回，
 /// 空着的 `subject` / `object` 按句柄填清单里的名字。
 ///
+/// 报的是开头的句子（"O2"）时，取回的是开头原句，交给 [`drop_quotes_from_opening`] 照旧丢掉。
+///
 /// 模型照旧写了引文或名字的（老习惯、别的模型）原样留着：这一步只补空，不改写。
-/// 句柄指不到任何实体、主语因此没有名字的事实丢掉，计进 `skipped_facts`
-pub fn ground(x: &mut Extraction, text: &str, known: &[KnownEntity]) {
-    let sentences = sentences(text);
+/// 丢掉、计进 `skipped_facts` 的：句柄指不到任何实体、主语因此没有名字的；报了句号却哪句
+/// 都指不到、手里也没有引文的——指不到原文的事实没有根据，留下只会让审它的人对着空证据
+pub fn ground(x: &mut Extraction, text: &str, opening: Option<&str>, known: &[KnownEntity]) {
+    let opening = opening_cut(opening).map(|(cut, _)| cut).unwrap_or_default();
     let mut names: std::collections::HashMap<String, String> = known
         .iter()
         .map(|k| (k.handle.trim().to_string(), k.name.clone()))
@@ -616,7 +645,7 @@ pub fn ground(x: &mut Extraction, text: &str, known: &[KnownEntity]) {
     let name_of = |handle: Option<&str>| handle.and_then(|h| names.get(h.trim()).cloned());
 
     for f in &mut x.facts {
-        if let Some(quote) = f.sentence.as_ref().and_then(|c| cited(text, &sentences, c)) {
+        if let Some(quote) = f.sentence.as_ref().and_then(|c| cited(text, &opening, c)) {
             f.quote = Some(quote);
         }
         if f.subject.trim().is_empty() {
@@ -627,11 +656,12 @@ pub fn ground(x: &mut Extraction, text: &str, known: &[KnownEntity]) {
         }
     }
     let before = x.facts.len();
-    x.facts.retain(|f| !f.subject.trim().is_empty());
+    x.facts
+        .retain(|f| !f.subject.trim().is_empty() && (f.sentence.is_none() || f.quote.is_some()));
     x.skipped_facts += before - x.facts.len();
 
     for n in &mut x.names {
-        if let Some(quote) = n.sentence.as_ref().and_then(|c| cited(text, &sentences, c)) {
+        if let Some(quote) = n.sentence.as_ref().and_then(|c| cited(text, &opening, c)) {
             n.quote = Some(quote);
         }
     }
@@ -1951,7 +1981,7 @@ mod tests {
             name: "Arthur Mensch".into(),
         }];
         let mut x = parse_response(raw).unwrap();
-        ground(&mut x, text, &known);
+        ground(&mut x, text, None, &known);
 
         assert_eq!(
             x.facts.len(),
@@ -1988,17 +2018,67 @@ mod tests {
     }
 
     #[test]
+    fn a_fact_read_in_the_opening_cites_the_opening_and_is_dropped_there() {
+        let opening =
+            "FIRST AMENDMENT TO LEASE AGREEMENT. The Expansion Option Deadline is March 17, 2020.";
+        let text = "IN WITNESS WHEREOF, the parties have executed this Amendment.
+
+|  |  |  |
+| Witness | HPBB1, LLC |  |
+";
+        let messages =
+            build_messages_with_opening(&[], &[], &[], None, "a.html", &[], Some(opening), text);
+        assert!(messages[1]
+            .content
+            .contains("[O2] The Expansion Option Deadline is March 17, 2020."));
+        assert!(messages[1].content.contains("[S2] |  |  |  |"));
+
+        let raw = r#"{"entities":[{"local_id":"e1","name":"Lease","type":"agreement"}],
+                      "facts":[{"subject_ref":"e1","predicate":"expansion_option_deadline","value":"2020-03-17","sentence":"O2"},
+                               {"subject_ref":"e1","predicate":"expansion_budget_deadline","value":"2020-05-07","sentence":9},
+                               {"subject_ref":"e1","predicate":"executed","value":"true","sentence":1}]}"#;
+        let mut x = parse_response(raw).unwrap();
+        ground(&mut x, text, Some(opening), &[]);
+        assert_eq!(
+            x.facts.len(),
+            2,
+            "a number that points nowhere, with no quote, has no ground"
+        );
+        assert_eq!(x.skipped_facts, 1);
+        assert_eq!(
+            x.facts[0].quote.as_deref(),
+            Some("The Expansion Option Deadline is March 17, 2020.")
+        );
+        let dropped = drop_quotes_from_opening(&mut x, text, opening);
+        assert_eq!(
+            dropped.len(),
+            1,
+            "the opening check sees what the model read in the opening"
+        );
+        assert_eq!(x.facts.len(), 1);
+        assert_eq!(x.facts[0].predicate, "executed");
+    }
+
+    #[test]
     fn a_sentence_number_outside_the_text_cites_nothing() {
         let text = "One. Two.";
-        let s = sentences(text);
         assert_eq!(
-            cited(text, &s, &serde_json::json!(2)).as_deref(),
+            cited(text, "", &serde_json::json!(2)).as_deref(),
             Some("Two.")
         );
-        assert_eq!(cited(text, &s, &serde_json::json!(0)), None);
-        assert_eq!(cited(text, &s, &serde_json::json!(3)), None);
-        assert_eq!(cited(text, &s, &serde_json::json!([1, "x"])), None);
-        assert_eq!(cited(text, &s, &serde_json::json!(null)), None);
+        assert_eq!(cited(text, "", &serde_json::json!(0)), None);
+        assert_eq!(cited(text, "", &serde_json::json!(3)), None);
+        assert_eq!(cited(text, "", &serde_json::json!([1, "x"])), None);
+        assert_eq!(cited(text, "", &serde_json::json!(null)), None);
+        assert_eq!(
+            cited(text, "Head.", &serde_json::json!("O1")).as_deref(),
+            Some("Head.")
+        );
+        assert_eq!(
+            cited(text, "Head.", &serde_json::json!(["O1", 2])),
+            None,
+            "one citation reads one part"
+        );
     }
 
     #[test]
