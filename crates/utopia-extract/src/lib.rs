@@ -1918,18 +1918,11 @@ mod tests {
 
     #[test]
     fn every_sentence_gets_a_number_and_the_text_is_otherwise_untouched() {
-        let text = "Mistral AI was founded in April 2023. It is based in Paris.
-
-| Year | Valuation |
-| 2024 | $6 billion |
-";
+        let text = "Mistral AI was founded in April 2023. It is based in Paris.\n\n| Year | Valuation |\n| 2024 | $6 billion |\n";
         let numbered = numbered_text(text);
         assert!(numbered
             .starts_with("[S1] Mistral AI was founded in April 2023. [S2] It is based in Paris."));
-        assert!(numbered.contains(
-            "[S3] | Year | Valuation |
-[S4] | 2024 | $6 billion |"
-        ));
+        assert!(numbered.contains("[S3] | Year | Valuation |\n[S4] | 2024 | $6 billion |"));
         let stripped: String = {
             let mut out = numbered.clone();
             for n in 1..=4 {
