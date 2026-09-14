@@ -56,13 +56,18 @@ pub struct ExtractedName {
     #[serde(rename = "ref")]
     pub entity_ref: String,
     pub name: String,
-    /// 名字出现在里面的那段原文，逐字抄
+    /// 名字出现在里面的那段原文。模型报句号，[`ground`] 按句号从正文里取回来填这里
     #[serde(default)]
     pub quote: Option<String>,
+    /// 名字所在句子的编号（见 [`numbered_text`]）
+    #[serde(default)]
+    pub sentence: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ExtractedFact {
+    /// 主语的名字。模型只写句柄时为空，[`ground`] 按句柄填回清单里的名字
+    #[serde(default)]
     pub subject: String,
     /// Response-local entity handle. When present, callers must bind through it rather than
     /// guessing from the surface name.
@@ -87,8 +92,13 @@ pub struct ExtractedFact {
     pub valid_to: Option<String>,
     #[serde(default)]
     pub confidence: Option<f32>,
+    /// 支撑这条事实的原文。模型报句号，[`ground`] 按句号从正文里取回整句填这里——下游的
+    /// 片段核对、同句判断、证据表都照旧读它
     #[serde(default)]
     pub quote: Option<String>,
+    /// 支撑这条事实的句子编号：一个数，或相邻几句的数组（见 [`numbered_text`]）
+    #[serde(default)]
+    pub sentence: Option<serde_json::Value>,
     /// 引文里逐字点名主语的那几个字（#582）。模型抄，不判断；落库时机器核对它
     /// 是不是 `subject` 那个名字——"Former OpenAI personnel" 不是 OpenAI
     #[serde(default)]
@@ -314,9 +324,9 @@ pub fn build_messages_with_opening(
          \n\
          Output format:\n\
          {{\"entities\":[{{\"local_id\":\"e1\",\"name\":\"entity name\",\"type\":\"type key\",\"specific_type\":\"what you would call it\"}}],\n\
-          \"facts\":[{{\"subject\":\"subject entity name\",\"subject_ref\":\"e1\",\"subject_span\":\"the words in quote that name the subject\",\"predicate\":\"relation key\",\"object\":\"object entity name\",\"object_ref\":\"e2\",\"object_span\":\"the words in quote that name the object\",\n\
-                     \"valid_from\":\"2023-01\",\"valid_to\":null,\"confidence\":0.9,\"quote\":\"verbatim supporting quote\"}}],\n\
-          \"names\":[{{\"ref\":\"e1\",\"name\":\"another name the text uses for it\",\"quote\":\"verbatim text containing that name\"}}]}}\n\
+          \"facts\":[{{\"subject_ref\":\"e1\",\"predicate\":\"relation key\",\"object_ref\":\"e2\",\"object_span\":\"only when the sentence names it otherwise\",\n\
+                     \"valid_from\":\"2023-01\",\"confidence\":0.9,\"sentence\":3}}],\n\
+          \"names\":[{{\"ref\":\"e1\",\"name\":\"another name the text uses for it\",\"sentence\":2}}]}}\n\
          \n\
          Rules:\n\
          1. Give every newly listed entity a local_id unique within this response (e1, e2, ...). \
@@ -338,15 +348,16 @@ pub fn build_messages_with_opening(
          1b. Every other name the text gives an entity goes into \"names\", once per name: the \
             shortened form it introduces or uses (\"上海研究院\" for \"星云科技上海研究院\"), a \
             former name, the name in another language. \"ref\" is the entity's local_id or its \
-            known handle, and \"quote\" is a verbatim excerpt that contains the name. Only \
+            known handle, and \"sentence\" is the number of a sentence that contains the name. Only \
             names belong there — never a pronoun or a description (\"该公司\", \"the company\", \
             \"former employees\") — and never the name already written in entities. A name \
             must name the entity itself, not something that belongs to it: \"星云科技研发团队\" \
             names a team, not 星云科技.\n\
-         2. Every fact keeps its name fields and uses subject_ref; relation facts also use \
-            object_ref. Each ref must be either a local_id defined exactly once in \
-            entities or a known handle supplied with this text. An entity referenced by a known \
-            handle must not be copied into entities.\n\
+         2. A fact names its sides by handle only: subject_ref, and object_ref for a relation \
+            fact. Each ref must be either a local_id defined exactly once in entities or a known \
+            handle supplied with this text; the handle already carries the name, so do not write \
+            it again. An entity referenced by a known handle must not be copied into entities. \
+            Leave out any field that would be null.\n\
          3. Dates must be \"YYYY\", \"YYYY-MM\", \"YYYY-MM-DD\", or null — never invent dates. \
             A clock time is allowed only together with its zone, as \"YYYY-MM-DDTHH:MM[:SS]Z\" \
             or with a \"+HH:MM\" offset, and only when the text or the document states that \
@@ -362,11 +373,13 @@ pub fn build_messages_with_opening(
             none of these is an entity and none is an object. Put the period's dates in \
             valid_from and valid_to (a fiscal period resolves to the dates the document \
             states for it) and write the figure as the fact's \"value\" — the figure alone, as it stands in the \
-            quote, with nothing appended. A column of a table headed by a period is a column \
+            sentence, with nothing appended. A column of a table headed by a period is a column \
             of values that hold in that period.\n\
          {temporal_note}\n\
          4. {time_ctx}\n\
-         5. quote must be a contiguous excerpt from the Text block; never quote the opening of the document. Every fact needs one.\n\
+         5. \"sentence\" is the number of the sentence in the Text block that states the fact: \
+            [S3] is 3. A fact that takes adjacent sentences gives them as a list, [3,4]. Only the \
+            Text block is numbered; the opening of the document is never cited. Every fact needs one.\n\
          6. confidence in 0~1: 0.9 explicitly stated, 0.7 inferred, 0.5 uncertain.\n\
          7. If nothing can be extracted, output {{\"entities\":[],\"facts\":[]}}.\n\
          8. If no listed relation fits, do not force the nearest one — write the predicate the \
@@ -374,9 +387,9 @@ pub fn build_messages_with_opening(
             named after the text is worth more than a listed one that says something false.\n\
          8a. The same holds for a literal the text states outright — an amount, a share count, \
             a percentage, a capacity, a date, a job title, a ticker. Write it as a fact with \
-            \"value\" and no \"object\": {{\"subject\":\"NVIDIA\",\"subject_ref\":\"e1\",\
+            \"value\" and no \"object\": {{\"subject_ref\":\"e1\",\
             \"predicate\":\"purchase_price\",\"value\":\"$11.9 billion\",\"confidence\":0.9,\
-            \"quote\":\"...\"}}. Name the predicate after the text when no listed attribute \
+            \"sentence\":4}}. Name the predicate after the text when no listed attribute \
             fits — \"purchase_price\", \"job_title\", \"generation_capacity\", \"record_date\". \
             Attach it to the entity the text attaches it to, and keep the literal as written, \
             units and all — except a date, which is always written in the format of rule 3 \
@@ -386,7 +399,7 @@ pub fn build_messages_with_opening(
             **A stated figure left out is the loss that costs most**: the reader \
             came for those numbers, and no later step can recover one that was never written \
             down.\n\
-         8b. A listed relation followed by {{…}} can carry those **qualifiers on the edge**:             when the same sentence gives both the other entity and a figure for it — an             amount, a stake, a price, a share count — write the relation with its \"object\"             and put the figure in \"qualifiers\" keyed exactly as listed, **as written in the text, currency and all** (\"€30 million\", \"15亿元人民币\", never a bare number) — except a date, which takes the format of rule 3:             {{\"subject\":\"Vega Capital\",\"predicate\":\"invested_in\",\"object\":\"Northwind\",            \"qualifiers\":{{\"amount\":\"$5 billion\"}},…}}. Never invent a key that is not             listed for that relation, and never drop the figure to keep the edge — a             relation without its amount is half the sentence. A relation you name after the text (rule 8) carries its figure the same way — keyed by the listed attribute that fits it, or by the plainest word for it (\"amount\", \"stake\", \"price\") when none does.
+         8b. A listed relation followed by {{…}} can carry those **qualifiers on the edge**:             when the same sentence gives both the other entity and a figure for it — an             amount, a stake, a price, a share count — write the relation with its \"object\"             and put the figure in \"qualifiers\" keyed exactly as listed, **as written in the text, currency and all** (\"€30 million\", \"15亿元人民币\", never a bare number) — except a date, which takes the format of rule 3:             {{\"subject_ref\":\"e1\",\"predicate\":\"invested_in\",\"object_ref\":\"e2\",            \"qualifiers\":{{\"amount\":\"$5 billion\"}},…}}. Never invent a key that is not             listed for that relation, and never drop the figure to keep the edge — a             relation without its amount is half the sentence. A relation you name after the text (rule 8) carries its figure the same way — keyed by the listed attribute that fits it, or by the plainest word for it (\"amount\", \"stake\", \"price\") when none does.
          8c. A **listed** relation also takes \"value\" when what the text gives is a \
             string rather than another entity — a job title, a designation, a ticker, a \
             model number. Never invent an entity for a string. And when the text introduces \
@@ -405,10 +418,11 @@ pub fn build_messages_with_opening(
             including A, B, C and D\" is four facts, not one; \"advisors A and B\" is two. \
             Do not collapse an enumeration into a summary or into its first member. \
             The same applies to the entities: each named party is its own entity.\n\
-         8e. subject_span and object_span are the exact words in quote that name each side. \
-            Copy them; never paraphrase. When the words that do the thing are a description \
+         8e. subject_span and object_span are the exact words in that sentence that name each \
+            side. Copy them; never paraphrase. Leave a span out when those words are the name \
+            the entity is listed under. When the words that do the thing are a description \
             rather than a name — \"former X employees\", \"companies using X\" — the span \
-            is that description, whatever you wrote in subject.\n\
+            is that description, whatever the handle points to.\n\
          8f. An obligation, a deadline or a right belongs to the agreement, law or decision \
             that imposes it, even when it concerns another agreement or thing. A lease that \
             sets the last day to sign a second lease gives that deadline to the first lease; \
@@ -427,9 +441,10 @@ pub fn build_messages_with_opening(
 
     // 已知实体紧挨着正文：服从性靠位置，理由见 known_block 的注释
     let user = format!(
-        "Source file: \"{filename}\"\n{}{}\nText:\n{chunk_text}",
+        "Source file: \"{filename}\"\n{}{}\nText (each sentence starts with its number):\n{}",
         opening_block(opening),
-        known_block(known)
+        known_block(known),
+        numbered_text(chunk_text)
     );
 
     vec![
@@ -521,12 +536,105 @@ fn known_block(known: &[KnownEntity]) -> String {
         "\nAlready recorded from earlier parts of this same document:\n{lines}\n\
          \n\
          If something in the text below refers to one of these, use its k-handle in the fact's \
-         subject_ref/object_ref, write that exact string as the name, and give it that same \
-         type — documents abbreviate after first mention \
+         subject_ref/object_ref — documents abbreviate after first mention \
          (\"星云科技上海研究院\" later becomes \"上海研究院\"), and the shortened form must \
          not become a second entity. If it is a different thing, name it as the text does; \
          do not force it onto this list.\n"
     )
+}
+
+/// 正文的句子：(起点字节, 这一句)。句子边界按 UAX #29，空白段不算一句。编号从 1 起，
+/// 就是在列表里的位置加一。提示词里的编号与 [`ground`] 取回原句用的是同一次切分
+fn sentences(text: &str) -> Vec<(usize, &str)> {
+    use unicode_segmentation::UnicodeSegmentation;
+    text.split_sentence_bound_indices()
+        .filter(|(_, s)| !s.trim().is_empty())
+        .collect()
+}
+
+/// 正文逐句带上编号 `[S1]`、`[S2]`……，原文一个字不动（换行、表格行都照旧）。
+///
+/// **模型从前把支撑事实的原句逐字抄一遍**（#701 那轮实测：一块 19 条事实，引文只有 10
+/// 句不同，合计比正文还长，占输出的四分之一）。抄是在花输出 token 复述我们手里已经有的
+/// 东西。报编号只要几个 token，原句由服务端按编号从正文里取——取回来的一定是正文里的字，
+/// 比抄的还可靠
+pub fn numbered_text(text: &str) -> String {
+    use unicode_segmentation::UnicodeSegmentation;
+    let mut out = String::with_capacity(text.len() + text.len() / 16);
+    let mut n = 0usize;
+    // 切出来的段首尾相接、盖满全文，逐段拼回去就是原文
+    for piece in text.split_sentence_bounds() {
+        if !piece.trim().is_empty() {
+            n += 1;
+            out.push_str(&format!("[S{n}] "));
+        }
+        out.push_str(piece);
+    }
+    out
+}
+
+/// 句号 → 原文。一个数或相邻几句的数组；超出范围、写不成数的返回 None。
+/// 数组取最小到最大那一段连续原文，于是取回来的一定是正文的一个子串
+fn cited(text: &str, sentences: &[(usize, &str)], cite: &serde_json::Value) -> Option<String> {
+    let number = |v: &serde_json::Value| -> Option<usize> {
+        match v {
+            serde_json::Value::Number(n) => n.as_u64().map(|n| n as usize),
+            // 模型偶尔照提示词里的记号写成 "S3"
+            serde_json::Value::String(s) => s.trim().trim_start_matches(['S', 's']).parse().ok(),
+            _ => None,
+        }
+    };
+    let numbers: Vec<usize> = match cite {
+        serde_json::Value::Array(items) => items.iter().map(number).collect::<Option<_>>()?,
+        other => vec![number(other)?],
+    };
+    let (lo, hi) = (*numbers.iter().min()?, *numbers.iter().max()?);
+    if lo == 0 || hi > sentences.len() {
+        return None;
+    }
+    let (start, _) = sentences[lo - 1];
+    let (last_start, last) = sentences[hi - 1];
+    Some(text[start..last_start + last.len()].trim().to_string())
+}
+
+/// 把模型按句号、句柄写的回复补全成下游认的样子：`quote` 按句号从正文取回，
+/// 空着的 `subject` / `object` 按句柄填清单里的名字。
+///
+/// 模型照旧写了引文或名字的（老习惯、别的模型）原样留着：这一步只补空，不改写。
+/// 句柄指不到任何实体、主语因此没有名字的事实丢掉，计进 `skipped_facts`
+pub fn ground(x: &mut Extraction, text: &str, known: &[KnownEntity]) {
+    let sentences = sentences(text);
+    let mut names: std::collections::HashMap<String, String> = known
+        .iter()
+        .map(|k| (k.handle.trim().to_string(), k.name.clone()))
+        .collect();
+    for e in &x.entities {
+        if let Some(id) = e.local_id.as_deref() {
+            names.insert(id.trim().to_string(), e.name.clone());
+        }
+    }
+    let name_of = |handle: Option<&str>| handle.and_then(|h| names.get(h.trim()).cloned());
+
+    for f in &mut x.facts {
+        if let Some(quote) = f.sentence.as_ref().and_then(|c| cited(text, &sentences, c)) {
+            f.quote = Some(quote);
+        }
+        if f.subject.trim().is_empty() {
+            f.subject = name_of(f.subject_ref.as_deref()).unwrap_or_default();
+        }
+        if f.object.is_none() && f.value.is_none() {
+            f.object = name_of(f.object_ref.as_deref());
+        }
+    }
+    let before = x.facts.len();
+    x.facts.retain(|f| !f.subject.trim().is_empty());
+    x.skipped_facts += before - x.facts.len();
+
+    for n in &mut x.names {
+        if let Some(quote) = n.sentence.as_ref().and_then(|c| cited(text, &sentences, c)) {
+            n.quote = Some(quote);
+        }
+    }
 }
 
 /// 从 LLM 回复中稳健地取出 JSON 块（容忍代码围栏与前后废话）。
@@ -1806,6 +1914,98 @@ mod tests {
             Some(json!(35000.0))
         );
         assert_eq!(normalize_attr_value("number", &json!("about ten")), None);
+    }
+
+    #[test]
+    fn every_sentence_gets_a_number_and_the_text_is_otherwise_untouched() {
+        let text = "Mistral AI was founded in April 2023. It is based in Paris.
+
+| Year | Valuation |
+| 2024 | $6 billion |
+";
+        let numbered = numbered_text(text);
+        assert!(numbered
+            .starts_with("[S1] Mistral AI was founded in April 2023. [S2] It is based in Paris."));
+        assert!(numbered.contains(
+            "[S3] | Year | Valuation |
+[S4] | 2024 | $6 billion |"
+        ));
+        let stripped: String = {
+            let mut out = numbered.clone();
+            for n in 1..=4 {
+                out = out.replace(&format!("[S{n}] "), "");
+            }
+            out
+        };
+        assert_eq!(stripped, text);
+    }
+
+    #[test]
+    fn a_reply_by_sentence_and_handle_is_filled_in_from_the_text() {
+        let text =
+            "Mistral AI was founded in April 2023. It is based in Paris. Arthur Mensch leads it.";
+        let raw = r#"{"entities":[{"local_id":"e1","name":"Mistral AI","type":"organization"},
+                                   {"local_id":"e2","name":"Paris","type":"place"}],
+                      "facts":[{"subject_ref":"e1","predicate":"founding_date","value":"2023-04","sentence":1},
+                               {"subject_ref":"e1","predicate":"location","object_ref":"e2","sentence":[1,2]},
+                               {"subject_ref":"k1","predicate":"ceo","object_ref":"e1","subject_span":"Arthur Mensch","sentence":"S3"},
+                               {"subject_ref":"e9","predicate":"ghost","value":"x","sentence":1},
+                               {"subject":"Mistral AI","subject_ref":"e1","predicate":"based_in","object":"Paris","object_ref":"e2","quote":"It is based in Paris","sentence":7}],
+                      "names":[{"ref":"e1","name":"Mistral","sentence":1}]}"#;
+        let known = [KnownEntity {
+            handle: "k1".into(),
+            type_key: "person".into(),
+            name: "Arthur Mensch".into(),
+        }];
+        let mut x = parse_response(raw).unwrap();
+        ground(&mut x, text, &known);
+
+        assert_eq!(
+            x.facts.len(),
+            4,
+            "a handle that points nowhere leaves the fact without a subject"
+        );
+        assert_eq!(x.skipped_facts, 1);
+        assert_eq!(x.facts[0].subject, "Mistral AI");
+        assert_eq!(
+            x.facts[0].object, None,
+            "an attribute fact keeps its value and gets no object"
+        );
+        assert_eq!(
+            x.facts[0].quote.as_deref(),
+            Some("Mistral AI was founded in April 2023.")
+        );
+        assert_eq!(x.facts[1].object.as_deref(), Some("Paris"));
+        assert_eq!(
+            x.facts[1].quote.as_deref(),
+            Some("Mistral AI was founded in April 2023. It is based in Paris."),
+            "adjacent sentences come back as one stretch of the text"
+        );
+        assert_eq!(
+            x.facts[2].subject, "Arthur Mensch",
+            "a known handle carries its name"
+        );
+        assert_eq!(x.facts[2].quote.as_deref(), Some("Arthur Mensch leads it."));
+        // 照旧写了名字与引文的原样留着；越界的句号不覆盖它
+        assert_eq!(x.facts[3].quote.as_deref(), Some("It is based in Paris"));
+        assert_eq!(
+            x.names[0].quote.as_deref(),
+            Some("Mistral AI was founded in April 2023.")
+        );
+    }
+
+    #[test]
+    fn a_sentence_number_outside_the_text_cites_nothing() {
+        let text = "One. Two.";
+        let s = sentences(text);
+        assert_eq!(
+            cited(text, &s, &serde_json::json!(2)).as_deref(),
+            Some("Two.")
+        );
+        assert_eq!(cited(text, &s, &serde_json::json!(0)), None);
+        assert_eq!(cited(text, &s, &serde_json::json!(3)), None);
+        assert_eq!(cited(text, &s, &serde_json::json!([1, "x"])), None);
+        assert_eq!(cited(text, &s, &serde_json::json!(null)), None);
     }
 
     #[test]

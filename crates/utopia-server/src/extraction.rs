@@ -1150,6 +1150,8 @@ async fn run(state: &AppState, document_id: Uuid, proposer: Proposer) -> anyhow:
                 continue;
             }
         };
+        // 模型报的是句号与句柄：原句按句号从这一块取回，名字按句柄填上，下游照旧读引文与名字
+        utopia_extract::ground(&mut extraction, &chunk.text, &known);
         // **跳过了什么必须说出来。** 逐项解析救回了整块，但被跳过的那几条
         // 如果不落信号，就成了另一种「部分抽取报告成完成」（#108 修过一次）
         if extraction.truncated {
