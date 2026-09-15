@@ -274,7 +274,7 @@ pub(super) fn base_tools() -> serde_json::Value {
             "type": "function",
             "function": {
                 "name": "search_docs",
-                "description": "Search the Utopia product manual (the \"Utopia Charter\") — how \
+                "description": "Search the AIM product manual (the \"AIM Charter\") — how \
                     the platform itself works (ingestion and sync, missing markers and versions, \
                     the graph and review flow, roles, settings) — and never the user's own \
                     documents, which live in search_chunks.",
@@ -459,10 +459,10 @@ pub(super) fn base_tools() -> serde_json::Value {
     ])
 }
 
-const SYSTEM_PROMPT: &str = "You are the assistant of Utopia, a temporal knowledge platform. \
+const SYSTEM_PROMPT: &str = "You are the assistant of AIM, a temporal knowledge platform. \
     You have tools: search_chunks (document search) and get_document (the full text of one \
     document found by search), find_entities, entity_facts, neighbors, timeline, \
-    paths_between and changes (a bi-temporal knowledge graph), and search_docs (Utopia's \
+    paths_between and changes (a bi-temporal knowledge graph), and search_docs (AIM's \
     own manual, the Charter).\n\
     The knowledge base holds whatever its owners ingested: documents, and a graph extracted \
     from them. You do not know what is in it until you look; public companies, well-known \
@@ -477,10 +477,10 @@ const SYSTEM_PROMPT: &str = "You are the assistant of Utopia, a temporal knowled
     - Record time — when we came to believe it, and when we revised it. entity_facts and search_chunks take `as_of` = the base as it stood at that moment, before later corrections, retractions and merges; changes lists what moved in a window.\n\
     \"Who was CTO in 2019\" is world time; \"what did we learn last month\" and \"what did \
     we get wrong\" are record time. The same fact has a position on both.\n\
-    Boundary: search_docs answers questions about Utopia itself (features, ingestion, \
+    Boundary: search_docs answers questions about AIM itself (features, ingestion, \
     permissions, what fields like 'missing' or validity ranges mean); the other tools answer \
     questions about the knowledge stored in it. Never mix the manual into answers about the \
-    base's contents unless they asked about Utopia's behavior.\n\
+    base's contents unless they asked about AIM's behavior.\n\
     \n\
     Method:\n\
     First decide what the message is about. A message about THIS CONVERSATION — translate it, \

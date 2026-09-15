@@ -325,7 +325,7 @@ pub async fn search_docs(
         let key = format!("charter:{}#{}", h.slug, h.anchor);
         let n = cite(sink, key, |n| charter_source_json(n, h));
         lines.push(format!(
-            "[{n}] Utopia Charter — {} › {}:\n{}",
+            "[{n}] AIM Charter — {} › {}:\n{}",
             h.title,
             h.heading,
             truncate(&h.body, 1600)

@@ -1,12 +1,12 @@
 # Ingest interfaces
 
-Utopia pulls or receives documents through **sources**. Two source kinds speak JSON and are meant for integration: **Custom** (Utopia polls your service) and **API** (your service pushes to Utopia). Both share the same identity semantics: every item has a stable ID, and pushing or returning the same ID again **updates the same document in place** — the previous content is kept as a version, search re-indexes, and the knowledge graph re-extracts.
+AIM pulls or receives documents through **sources**. Two source kinds speak JSON and are meant for integration: **Custom** (AIM polls your service) and **API** (your service pushes to AIM). Both share the same identity semantics: every item has a stable ID, and pushing or returning the same ID again **updates the same document in place** — the previous content is kept as a version, search re-indexes, and the knowledge graph re-extracts.
 
 ## Choosing between them
 
 | | Custom (pull) | API (push) |
 |---|---|---|
-| Who initiates | Utopia, on a schedule | Your service, any time |
+| Who initiates | AIM, on a schedule | Your service, any time |
 | Auth | Optional header you configure | Per-source Bearer token |
 | Fits | Feeds, exports, periodic snapshots | Event-driven systems, scripts, CI |
 | Deletion signal | `deleted` array in the response | `deleted: true` in a push |
@@ -17,10 +17,10 @@ Utopia pulls or receives documents through **sources**. Two source kinds speak J
 
 RSS sources keep the existing `rss` source kind and can run in either mode:
 
-- **Feed content only** (`content_mode: "feed"`) preserves compatibility. Utopia stores the feed body or summary and does not request the linked article.
+- **Feed content only** (`content_mode: "feed"`) preserves compatibility. AIM stores the feed body or summary and does not request the linked article.
 - **Full article content for new items** (`content_mode: "full_new_items"`) is opt-in. The first successful sync records the current feed as a baseline and imports no documents. Later entries are discovered durably and hydrated in the background.
 
-Full-content hydration prefers substantive feed-native HTML (`content:encoded`) and converts it to safe Markdown. If that is absent or too thin, Utopia fetches the first alternate HTTP(S) article link through a bounded SSRF-resistant client, applies readability extraction, and converts the result to Markdown. A failed linked fetch or summary-only entry stays retryable or terminal with a typed diagnostic; it is never marked as completed full content. The source bar shows labeled pending, queued, retrying, complete, and terminal counts; per-entry troubleshooting data remains internal.
+Full-content hydration prefers substantive feed-native HTML (`content:encoded`) and converts it to safe Markdown. If that is absent or too thin, AIM fetches the first alternate HTTP(S) article link through a bounded SSRF-resistant client, applies readability extraction, and converts the result to Markdown. A failed linked fetch or summary-only entry stays retryable or terminal with a typed diagnostic; it is never marked as completed full content. The source bar shows labeled pending, queued, retrying, complete, and terminal counts; per-entry troubleshooting data remains internal.
 
 Only newly observed entries after activation are eligible for hydration. Changing from feed mode to full mode, or changing the feed URL while full mode is active, starts a new baseline generation; changing back stops new hydration work but preserves the ledger history. Browser rendering, authenticated pages, cookies, paywall bypass, challenge solving, recursive links, assets, and transcription are not part of this path.
 
@@ -28,7 +28,7 @@ Only newly observed entries after activation are eligible for hydration. Changin
 
 ## Custom source — the pull interface
 
-Create a **Custom** source and point it at any URL you control. On every sync (manual, interval, or cron) Utopia sends:
+Create a **Custom** source and point it at any URL you control. On every sync (manual, interval, or cron) AIM sends:
 
 ```
 GET {endpoint}?since=2026-08-26T19:43:24Z

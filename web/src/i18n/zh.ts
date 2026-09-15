@@ -12,13 +12,13 @@ import type { Strings } from "./en";
 export const zh: Strings = {
   app: {
     /* 标签页标题的前缀，也是标志图片的 alt */
-    name: "Kejaksaan Agung",
+    name: "AIM",
     /* 标语与出处都与 Utopia / Persona / Charter 同类：品牌的一部分，两种语言同值 */
     tagline: "We rather wish than hope to see.",
     taglineSource: "— Thomas More, 1516",
     siteUrl: "https://utopia.bi",
     docsUrl: "https://utopia.bi/docs",
-    org: ["Kejaksaan Agung", "Republik Indonesia"],
+    org: "AIM",
   },
   err: {
     bad_email: "这看起来不像一个邮箱地址。",
@@ -86,7 +86,7 @@ export const zh: Strings = {
     added: "已加入本体",
   },
   account: {
-    brand: "Utopia Persona",
+    brand: "AIM Persona",
     titleTag: "Persona",
     profile: "个人资料",
     cancel: "取消",
@@ -139,7 +139,7 @@ export const zh: Strings = {
     kbSettingsBtn: "设置",
     tokensNav: "Agent 与令牌",
     tokensTitle: "个人访问令牌",
-    tokensHint: "令牌让 agent 以你的身份通过 MCP 访问 Utopia，权限不超过你自己。默认只读，限定在你选的库，可随时在这里撤销。",
+    tokensHint: "令牌让 agent 以你的身份通过 MCP 访问 AIM，权限不超过你自己。默认只读，限定在你选的库，可随时在这里撤销。",
     newToken: "新令牌",
     tokenName: "名字",
     tokenNamePlaceholder: "我的笔记本",
@@ -154,7 +154,7 @@ export const zh: Strings = {
     expiresNever: "不过期",
     issueToken: "创建令牌",
     issuedTitle: "现在就复制，之后不会再显示。",
-    issuedHint: "Utopia 只保存它的哈希。丢了就在这里撤销，再建一枚。",
+    issuedHint: "AIM 只保存它的哈希。丢了就在这里撤销，再建一枚。",
     copy: "复制",
     copied: "已复制",
     mcpTitle: "MCP 客户端配置",
@@ -182,8 +182,8 @@ export const zh: Strings = {
     },
   },
   docs: {
-    brand: "Utopia Charter",
-    backTitle: "返回 Utopia",
+    brand: "AIM Charter",
+    backTitle: "返回 AIM",
     searchPlaceholder: "搜索文档…",
     noResults: "没有匹配。",
   },
@@ -259,8 +259,8 @@ export const zh: Strings = {
     signOut: "退出登录",
     docs: "文档",
     loading: "加载中…",
-    serverUnreachable: "罚则 500：Utopia 沉默了——它没有回应。",
-    notFound: "罚则 404：你在 Utopia 里迷了路。",
+    serverUnreachable: "罚则 500：AIM 沉默了——它没有回应。",
+    notFound: "罚则 404：你在 AIM 里迷了路。",
     returnHome: "回到首页",
     reportIssue: "反馈问题",
     refresh: "刷新",
@@ -313,12 +313,12 @@ export const zh: Strings = {
     backToSignIn: "← 返回登录",
     privacy: {
       title: "隐私政策",
-      note: "Utopia 自带的默认文本。运营本部署的组织可以替换成自己的政策。",
+      note: "AIM 自带的默认文本。运营本部署的组织可以替换成自己的政策。",
       sections: [
         {
           h: "一个自部署的平台",
           body: [
-            "Utopia 完全运行在部署方（运营者）自行选择的基础设施上。Utopia 项目本身接触不到这个部署：软件不向任何人发送遥测、分析或崩溃报告。",
+            "AIM 完全运行在部署方（运营者）自行选择的基础设施上。AIM 项目本身接触不到这个部署：软件不向任何人发送遥测、分析或崩溃报告。",
           ],
         },
         {
@@ -358,12 +358,12 @@ export const zh: Strings = {
     },
     terms: {
       title: "使用条款",
-      note: "Utopia 自带的默认文本。运营本部署的组织可以替换成自己的条款。",
+      note: "AIM 自带的默认文本。运营本部署的组织可以替换成自己的条款。",
       sections: [
         {
           h: "关于这份条款",
           body: [
-            "这个 Utopia 实例由部署它的组织运营，而非 Utopia 项目。你对它的使用受该组织自身政策约束；在运营者替换之前，这份默认条款覆盖基本事项。",
+            "这个 AIM 实例由部署它的组织运营，而非 AIM 项目。你对它的使用受该组织自身政策约束；在运营者替换之前，这份默认条款覆盖基本事项。",
           ],
         },
         {
@@ -390,7 +390,7 @@ export const zh: Strings = {
         {
           h: "关于本软件",
           body: [
-            "Utopia 是开源软件，按「原样」提供，不附带任何形式的担保。运营本部署的责任——包括备份、可用性与合规——由运营者承担。",
+            "AIM 是开源软件，按「原样」提供，不附带任何形式的担保。运营本部署的责任——包括备份、可用性与合规——由运营者承担。",
           ],
         },
       ],
@@ -544,7 +544,7 @@ export const zh: Strings = {
         "日期取页面最后一次编辑的时刻，那是页面自己的时钟，不是我们抓它的时刻。",
       api: "外部系统把 JSON 文档推送到这里，用这个来源自己的令牌认证。",
       custom:
-        "按计划轮询一个你控制的 URL——你的服务返回 JSON 条目，Utopia 保持同步。",
+        "按计划轮询一个你控制的 URL——你的服务返回 JSON 条目，AIM 保持同步。",
       memory:
         "从「对话」中记下的片段。只追加：被推翻的记忆是闭合有效区间，而不是删除——" +
         "时间线保留完整的来龙去脉。",
@@ -677,7 +677,7 @@ export const zh: Strings = {
     chunkOf: (filename: string, seq: number) => `${filename} · 第 ${seq} 段`,
   },
   ask: {
-    greeting: "问问 Utopia 都记住了什么",
+    greeting: "问问 AIM 都记住了什么",
     emptyTitle: "对话",
     emptyBody:
       "与你的知识库对话——带引用的回答、关于时间的提问，而且它会记住。\n请先在「文库」上传文档，并在「管理 → 模型」里配置模型。",
@@ -1274,7 +1274,7 @@ export const zh: Strings = {
       iri ? `被 ${iri} 占用` : "被这个知识库里已有的条目占用",
     importUnprojected: "暂未投影",
     importUnprojectedBody:
-      "这个文件用到、而 Utopia 目前还不消费的公理。什么都没丢：原文按上传时的样子存着，将来的版本可以投影它们。",
+      "这个文件用到、而 AIM 目前还不消费的公理。什么都没丢：原文按上传时的样子存着，将来的版本可以投影它们。",
     importDone: (created: number, updated: number) =>
       `导入完成——新建 ${created} 个类，更新 ${updated} 个。`,
     importHistory: "历次导入",
@@ -1355,7 +1355,7 @@ export const zh: Strings = {
       `什么都不会被删除，之后仍可再次采纳。`,
     undoConfirm: "撤销",
     undoCancel: "保持",
-    autoRanTitle: "Utopia 依据你的文档扩展了这个本体",
+    autoRanTitle: "AIM 依据你的文档扩展了这个本体",
     autoRanBody: (rels: string[], facts: number) =>
       `新增 ${rels.join("、")} · ${facts} 条事实已重新归类`,
     autoRanOff: "可在知识库设置里关掉它。",
@@ -1757,7 +1757,7 @@ export const zh: Strings = {
     autoExtend: "自动扩展本体",
     autoExtendNote:
       "当抽取遇到这个本体里没有的关系时，把它加进来，并把一直等着它的那些事实重新归类。" +
-      "每一次变更都会列出，并且可以撤销。关掉它并不会让 Utopia 不再留意——" +
+      "每一次变更都会列出，并且可以撤销。关掉它并不会让 AIM 不再留意——" +
       "那些说法仍然会汇集到「未匹配」下，只是要等你点头。",
     materialize: "物化推理",
     materializeNote:

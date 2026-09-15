@@ -5,7 +5,7 @@
 export const en = {
   app: {
     /* 标签页标题的前缀，也是标志图片的 alt */
-    name: "Kejaksaan Agung",
+    name: "AIM",
     // 化用《乌托邦》全书最后一句（Burnet 1684 译本）：
     // "there are many things in the commonwealth of Utopia that I rather wish,
     //  than hope, to see followed in our governments."
@@ -14,8 +14,8 @@ export const en = {
     taglineSource: "— Thomas More, 1516",
     siteUrl: "https://utopia.bi",
     docsUrl: "https://utopia.bi/docs",
-    /* 标志右侧的机构名，两行；专名，各语言同值 */
-    org: ["Kejaksaan Agung", "Republik Indonesia"],
+    /* 标志右侧的名字，一行；专名，各语言同值 */
+    org: "AIM",
   },
   /** 服务端校验错误的措辞。key = 服务端给的 code；缺一条就退回英文原句，不会崩。
       契约守卫（调错接口才碰得到）刻意不在这里——它们的读者是开发者 */
@@ -97,7 +97,7 @@ export const en = {
   },
   account: {
     /* 账户区字标：Persona——你在这座城里的身份面具 */
-    brand: "Utopia Persona",
+    brand: "AIM Persona",
     /* 网页标题用的短名：`Utopia | Persona` */
     titleTag: "Persona",
     profile: "Profile",
@@ -155,7 +155,7 @@ export const en = {
     /* 个人令牌页（0014 / 0016 A2）：给 agent 的钥匙，以这个人的身份行事 */
     tokensNav: "Agents & tokens",
     tokensTitle: "Personal access tokens",
-    tokensHint: "A token lets an agent reach Utopia over MCP as you, with no more access than you have. Read-only by default, limited to the bases you pick, revocable here.",
+    tokensHint: "A token lets an agent reach AIM over MCP as you, with no more access than you have. Read-only by default, limited to the bases you pick, revocable here.",
     newToken: "New token",
     tokenName: "Name",
     tokenNamePlaceholder: "My laptop",
@@ -171,7 +171,7 @@ export const en = {
     issueToken: "Create token",
     issuedTitle: "Copy it now. It will not be shown again.",
     issuedHint:
-      "Utopia keeps only a hash of it. If you lose it, revoke it here and create another.",
+      "AIM keeps only a hash of it. If you lose it, revoke it here and create another.",
     copy: "Copy",
     copied: "Copied",
     mcpTitle: "MCP client configuration",
@@ -200,8 +200,8 @@ export const en = {
   },
   docs: {
     /* 文档区字标：Charter——理想之城的立城宪章，与主字标同字体同字号 */
-    brand: "Utopia Charter",
-    backTitle: "Back to Utopia",
+    brand: "AIM Charter",
+    backTitle: "Back to AIM",
     searchPlaceholder: "Search the docs…",
     noResults: "No matches.",
   },
@@ -289,8 +289,8 @@ export const en = {
     docs: "Docs",
     loading: "Loading…",
     serverUnreachable:
-      "Punishment 500: Utopia has gone quiet — it isn't answering.",
-    notFound: "Punishment 404: You are lost in Utopia.",
+      "Punishment 500: AIM has gone quiet — it isn't answering.",
+    notFound: "Punishment 404: You are lost in AIM.",
     returnHome: "Return home",
     reportIssue: "Report an issue",
     refresh: "Refresh",
@@ -351,12 +351,12 @@ export const en = {
     backToSignIn: "← Back to sign in",
     privacy: {
       title: "Privacy policy",
-      note: "Default text bundled with Utopia. The organization operating this deployment may replace it with its own policy.",
+      note: "Default text bundled with AIM. The organization operating this deployment may replace it with its own policy.",
       sections: [
         {
           h: "A self-hosted platform",
           body: [
-            "Utopia runs entirely on infrastructure chosen by the organization that deployed it (the operator). The Utopia project has no access to this deployment: the software sends no telemetry, no analytics and no crash reports to anyone.",
+            "AIM runs entirely on infrastructure chosen by the organization that deployed it (the operator). The AIM project has no access to this deployment: the software sends no telemetry, no analytics and no crash reports to anyone.",
           ],
         },
         {
@@ -396,12 +396,12 @@ export const en = {
     },
     terms: {
       title: "Terms of use",
-      note: "Default text bundled with Utopia. The organization operating this deployment may replace it with its own terms.",
+      note: "Default text bundled with AIM. The organization operating this deployment may replace it with its own terms.",
       sections: [
         {
           h: "About these terms",
           body: [
-            "This instance of Utopia is operated by the organization that deployed it, not by the Utopia project. Your use of it is governed by that organization's own policies; these default terms cover the basics until the operator replaces them.",
+            "This instance of AIM is operated by the organization that deployed it, not by the AIM project. Your use of it is governed by that organization's own policies; these default terms cover the basics until the operator replaces them.",
           ],
         },
         {
@@ -428,7 +428,7 @@ export const en = {
         {
           h: "The software",
           body: [
-            "Utopia is open-source software provided “as is”, without warranty of any kind. Responsibility for operating this deployment — including backups, availability and compliance — lies with the operator.",
+            "AIM is open-source software provided “as is”, without warranty of any kind. Responsibility for operating this deployment — including backups, availability and compliance — lies with the operator.",
           ],
         },
       ],
@@ -601,7 +601,7 @@ export const en = {
         "own clock rather than ours.",
       api: "External systems push JSON documents here, authenticated with this source's own token.",
       custom:
-        "Polls a URL you control on a schedule — your service returns JSON items and Utopia keeps them in sync.",
+        "Polls a URL you control on a schedule — your service returns JSON items and AIM keeps them in sync.",
       memory:
         "Episodes remembered from Chat. Append-only: contradicted memories close their " +
         "validity range instead of being deleted — the timeline keeps the whole story.",
@@ -740,7 +740,7 @@ export const en = {
   },
   ask: {
     /* 新对话首屏问候：碑铭衬线，品牌名入句（标题不带句号） */
-    greeting: "Ask Utopia what it remembers",
+    greeting: "Ask AIM what it remembers",
     emptyTitle: "Chat",
     emptyBody:
       "Converse with your knowledge base — cited answers, temporal questions, and it can remember.\nUpload documents in Library and configure a model in Administration → Models first.",
@@ -1443,7 +1443,7 @@ export const en = {
     /* 出现过但今天不投影的公理，按名字与次数列出——"暂未投影"不是"已跳过" */
     importUnprojected: "Not projected yet",
     importUnprojectedBody:
-      "Axioms this file uses that Utopia does not consume yet. Nothing is lost: the source file is stored as uploaded, so a later version can project them.",
+      "Axioms this file uses that AIM does not consume yet. Nothing is lost: the source file is stored as uploaded, so a later version can project them.",
     importDone: (created: number, updated: number) =>
       `Imported — ${created} classes created, ${updated} updated.`,
     importHistory: "Previous imports",
@@ -1553,7 +1553,7 @@ export const en = {
     undoCancel: "Keep",
     /* 自动扩本体的通知：默认开启的前提是它的动作可见且可退。
        只记在审计台账里不算可见——那是查证用的，不是通知用的 */
-    autoRanTitle: "Utopia extended this ontology from your documents",
+    autoRanTitle: "AIM extended this ontology from your documents",
     autoRanBody: (rels: string[], facts: number) =>
       `Added ${rels.join(", ")} · ${facts} fact${facts === 1 ? "" : "s"} reclassified`,
     autoRanOff: "Turn this off in knowledge base settings.",
@@ -2018,7 +2018,7 @@ export const en = {
     autoExtendNote:
       "When extraction meets a relation this ontology does not have, add it and reclassify the " +
       "facts that were waiting for it. Every change is listed and can be undone. Turning this " +
-      "off does not stop Utopia from noticing — the phrases still collect under Unmatched, they " +
+      "off does not stop AIM from noticing — the phrases still collect under Unmatched, they " +
       "just wait for you to approve them.",
     materialize: "Materialize inferences",
     materializeNote:

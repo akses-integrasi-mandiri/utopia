@@ -73,9 +73,9 @@ import {
 export const RAIL_CLS = "w-64 shrink-0 glass-strong border-y-0 border-l-0";
 
 /** 品牌标志：`web/public/logo.png`（Vite 原样发布到站点根，路径 `/logo.png`）
-    + 右侧两行衬线机构名（S.app.org），淡入入场；hover 浮出 ↗，点击去官网。
+    + 右侧一行衬线名字（S.app.org），淡入入场；hover 浮出 ↗，点击去官网。
     尺寸全用 em，跟随使用处的字号缩放（顶栏 18px、登录/故障页大标题 48px 共用一份）：
-    两行字全大写（碑铭式，字距放到 0.06em），各 0.6em、行高 1.25，叠起来约 1.5em，标志高度取同一个 1.5em 与之齐平；
+    名字全大写（碑铭式，字距放到 0.08em），1.1em、行高 1，标志高 1.5em，两者垂直居中对齐；
     箭头/偏移同样用 em。alt 仍是应用名，读屏与图片缺失时都还是那个词。 */
 export function Wordmark({ className }: { className?: string }) {
   return (
@@ -94,17 +94,16 @@ export function Wordmark({ className }: { className?: string }) {
         style={{ height: "1.5em", animationDelay: "80ms" }}
       />
       <span
-        className="u-letter flex flex-col whitespace-nowrap text-left uppercase"
+        className="u-letter whitespace-nowrap font-semibold uppercase"
         style={{
           fontFamily: "var(--font-serif)",
-          fontSize: "0.6em",
-          lineHeight: 1.25,
-          letterSpacing: "0.06em",
+          fontSize: "1.1em",
+          lineHeight: 1,
+          letterSpacing: "0.08em",
           animationDelay: "160ms",
         }}
       >
-        <span className="font-semibold">{S.app.org[0]}</span>
-        <span className="font-medium">{S.app.org[1]}</span>
+        {S.app.org}
       </span>
       <ArrowUpRight className="u-mark-arrow" aria-hidden />
     </a>
