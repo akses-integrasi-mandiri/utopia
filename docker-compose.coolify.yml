@@ -1,0 +1,53 @@
+# Coolify 部署用：一个文件自给自足，在跑 Coolify 的机器上从源码构建 app。
+#
+# 与 docker-compose.yml 的区别只有 app 服务的三处，其余逐字相同：
+#   - 有 build，没有 image。写着 image 时 Coolify 会先去拉，拉一个只存在于
+#     别的机器上的标签就是 "pull access denied"。
+#   - 没有 profiles。Coolify 不带 --profile 起服务，留着的话只有 db 会起来。
+#   - 构建在本机做，所以机器是 ARM（DGX Spark）还是 x86 都不用管。
+#
+# Coolify 里：来源指向本仓库的分支，Docker Compose 路径填这个文件，
+# 并删掉服务上的 UTOPIA_IMAGE 变量。
+# 环境变量的取舍（为什么有几条只写键名）见 docker-compose.yml 里的注释。
+services:
+  db:
+    image: ${UTOPIA_DB_IMAGE:-pgvector/pgvector:pg16}
+    environment:
+      POSTGRES_USER: utopia
+      POSTGRES_PASSWORD: ${UTOPIA_DB_PASSWORD:-utopia}
+      POSTGRES_DB: utopia
+      UTOPIA_APP_DB_PASSWORD: ${UTOPIA_APP_DB_PASSWORD:-}
+    ports:
+      - "${UTOPIA_DB_BIND:-127.0.0.1:1517}:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./docker/init-app-role.sh:/docker-entrypoint-initdb.d/10-app-role.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U utopia -d utopia"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      UTOPIA_DATABASE_URL: ${UTOPIA_DATABASE_URL:-postgres://utopia:${UTOPIA_DB_PASSWORD:-utopia}@db:5432/utopia}
+      UTOPIA_MIGRATION_URL:
+      UTOPIA_BIND_ADDR: 0.0.0.0:1516
+      UTOPIA_JWT_SECRET:
+      UTOPIA_SECRET_KEY:
+      UTOPIA_WEB_DIST: /app/web-dist
+      UTOPIA_DATA_DIR: /app/data
+      UTOPIA_DB_MAX_CONNECTIONS: ${UTOPIA_DB_MAX_CONNECTIONS:-32}
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "1516:1516"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dbdata:
