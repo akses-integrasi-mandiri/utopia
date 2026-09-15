@@ -4,7 +4,8 @@
 // 加新文案时先加在这里，再补其余语言包——顺序反了会得到一个类型错误，那正是本意。
 export const en = {
   app: {
-    name: "Utopia",
+    /* 标签页标题的前缀，也是标志图片的 alt */
+    name: "Kejaksaan Agung",
     // 化用《乌托邦》全书最后一句（Burnet 1684 译本）：
     // "there are many things in the commonwealth of Utopia that I rather wish,
     //  than hope, to see followed in our governments."
