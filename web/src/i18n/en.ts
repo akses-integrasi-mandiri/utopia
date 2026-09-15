@@ -13,6 +13,8 @@ export const en = {
     taglineSource: "— Thomas More, 1516",
     siteUrl: "https://utopia.bi",
     docsUrl: "https://utopia.bi/docs",
+    /* 标志右侧的机构名，两行；专名，各语言同值 */
+    org: ["Kejaksaan Agung", "Republik Indonesia"],
   },
   /** 服务端校验错误的措辞。key = 服务端给的 code；缺一条就退回英文原句，不会崩。
       契约守卫（调错接口才碰得到）刻意不在这里——它们的读者是开发者 */

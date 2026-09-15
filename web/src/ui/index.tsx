@@ -72,8 +72,11 @@ import {
     以最宽的 Ontology（w-64）为基准——rail 装的是名字，宽一档少截断。 */
 export const RAIL_CLS = "w-64 shrink-0 glass-strong border-y-0 border-l-0";
 
-/** 品牌字标：Marcellus 衬线，逐字母从左到右淡入；hover 浮出 ↗，点击去官网。
-    箭头/偏移全部用 em，跟随使用处的字号缩放（登录大标题与顶栏共用）。 */
+/** 品牌标志：`web/public/logo.png`（Vite 原样发布到站点根，路径 `/logo.png`）
+    + 右侧两行衬线机构名（S.app.org），淡入入场；hover 浮出 ↗，点击去官网。
+    尺寸全用 em，跟随使用处的字号缩放（顶栏 18px、登录/故障页大标题 48px 共用一份）：
+    两行字全大写（碑铭式，字距放到 0.06em），各 0.6em、行高 1.25，叠起来约 1.5em，标志高度取同一个 1.5em 与之齐平；
+    箭头/偏移同样用 em。alt 仍是应用名，读屏与图片缺失时都还是那个词。 */
 export function Wordmark({ className }: { className?: string }) {
   return (
     <a
@@ -81,18 +84,28 @@ export function Wordmark({ className }: { className?: string }) {
       target="_blank"
       rel="noreferrer"
       title="utopia.bi"
-      className={cn("relative inline-flex text-ink", className)}
-      style={{ fontFamily: "var(--font-brand)", letterSpacing: "0.01em" }}
+      className={cn("relative inline-flex items-center text-ink", className)}
+      style={{ gap: "0.5em" }}
     >
-      {[...S.app.name].map((ch, i) => (
-        <span
-          key={i}
-          className="u-letter"
-          style={{ animationDelay: `${80 + i * 65}ms` }}
-        >
-          {ch}
-        </span>
-      ))}
+      <img
+        src="/logo.png"
+        alt={S.app.name}
+        className="u-letter block w-auto"
+        style={{ height: "1.5em", animationDelay: "80ms" }}
+      />
+      <span
+        className="u-letter flex flex-col whitespace-nowrap text-left uppercase"
+        style={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "0.6em",
+          lineHeight: 1.25,
+          letterSpacing: "0.06em",
+          animationDelay: "160ms",
+        }}
+      >
+        <span className="font-semibold">{S.app.org[0]}</span>
+        <span className="font-medium">{S.app.org[1]}</span>
+      </span>
       <ArrowUpRight className="u-mark-arrow" aria-hidden />
     </a>
   );

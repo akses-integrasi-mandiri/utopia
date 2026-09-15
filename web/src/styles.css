@@ -87,6 +87,9 @@
      收紧一点的字距；几何体的字面本来就宽，0.06em 那种碑铭式的拉距在这里
      会散。退回 Geist 与系统无衬线 */
   --font-brand: "Manrope", "Geist", system-ui, sans-serif;
+  /* 标志旁的机构名：衬线。EB Garamond（Google Fonts，index.html 里加载），
+     退回 Georgia 与系统衬线 */
+  --font-serif: "EB Garamond", "Georgia", "Times New Roman", serif;
 
   --u-ground: #0a0a0a;
   /* 字色两档，不是三档。第三档（原 #7c7c7c）取消了：它承担的是"次要里的

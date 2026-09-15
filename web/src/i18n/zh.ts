@@ -17,6 +17,7 @@ export const zh: Strings = {
     taglineSource: "— Thomas More, 1516",
     siteUrl: "https://utopia.bi",
     docsUrl: "https://utopia.bi/docs",
+    org: ["Kejaksaan Agung", "Republik Indonesia"],
   },
   err: {
     bad_email: "这看起来不像一个邮箱地址。",
