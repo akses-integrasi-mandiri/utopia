@@ -150,6 +150,15 @@ Research query (JSON string): %s
 """ % (max_sources, json.dumps(query, ensure_ascii=False))
 
 
+def hermes_environment():
+    # The MCP bearer token belongs to the adapter, never to Hermes or the
+    # web/browser helpers it may launch while reading untrusted pages.
+    allowed = {"PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE",
+               "TZ", "TMPDIR", "HERMES_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME",
+               "XDG_CACHE_HOME", "SSL_CERT_FILE", "SSL_CERT_DIR"}
+    return {key: value for key, value in os.environ.items() if key in allowed}
+
+
 class HermesRunner:
     def __init__(self, command, state_dir, model="", timeout=600, toolsets="web,browser"):
         self.command, self.state_dir, self.model = command, Path(state_dir), model
@@ -162,13 +171,15 @@ class HermesRunner:
             prompt.write_text(research_prompt(query, max_sources))
             usage = root / "usage.json"
             args = [self.command, "--usage-file", str(usage), "chat", "-Q", "--oneshot",
+                    "--skills", "aim-utopia-research",
                     "--query-file", str(prompt), "--source", "tool", "--max-turns", "24",
                     "--run-budget", str(max(30, self.timeout - 15)), "-t", self.toolsets]
             if self.model:
                 args += ["-m", self.model]
             with (root / "stdout").open("w+") as out, (root / "stderr").open("w+") as err:
                 proc = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
-                                        cwd=root, start_new_session=True)
+                                        cwd=root, env=hermes_environment(),
+                                        start_new_session=True)
                 deadline = time.monotonic() + self.timeout
                 try:
                     while proc.poll() is None:

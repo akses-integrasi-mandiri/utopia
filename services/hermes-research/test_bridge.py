@@ -193,11 +193,12 @@ class ProcessTests(unittest.TestCase):
     def test_cli_receives_literal_query_file_and_result_is_parsed(self):
         with tempfile.TemporaryDirectory() as temp:
             command = Path(temp) / "hermes-fake"
-            code = f'#!{sys.executable}\nimport json,sys\nfrom pathlib import Path\np=Path(sys.argv[sys.argv.index("--query-file")+1]).read_text()\nassert "$(touch" in p\nprint({json.dumps(evidence())!r})\n'
+            code = f'#!{sys.executable}\nimport json,os,sys\nfrom pathlib import Path\np=Path(sys.argv[sys.argv.index("--query-file")+1]).read_text()\nassert "$(touch" in p\nassert sys.argv[sys.argv.index("--skills")+1] == "aim-utopia-research"\nassert "AIM_RESEARCH_TOKEN" not in os.environ\nprint({json.dumps(evidence())!r})\n'
             command.write_text(code)
             command.chmod(0o700)
             runner = HermesRunner(str(command), temp, "test", 5)
-            result = runner('$(touch /tmp/aim-should-never-execute) Who is Alice?', 8)
+            with patch.dict(os.environ, {"AIM_RESEARCH_TOKEN": "adapter-secret"}):
+                result = runner('$(touch /tmp/aim-should-never-execute) Who is Alice?', 8)
             self.assertEqual(len(result["claims"]), 1)
 
     def test_timeout_kills_process_and_does_not_return_partial_success(self):

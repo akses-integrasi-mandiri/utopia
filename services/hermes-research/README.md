@@ -9,6 +9,15 @@ On the DGX host, install `bridge.py` at
 `~/.local/share/aim-research/bridge.py`, install
 `aim-hermes-research.service` in `~/.config/systemd/user/`, and create a
 mode-0600 `~/.config/aim-research/bridge.env` from `bridge.env.example`.
+Install `skill/SKILL.md` at
+`~/.hermes/skills/aim-utopia-research/SKILL.md` for the same user. The adapter
+preloads this skill on every Hermes research session with `--skills
+aim-utopia-research`; confirm it appears in
+`hermes skills list --source local --enabled-only` before restarting the service.
+Hermes and its browser helpers inherit only basic process/configuration
+variables; the adapter's `AIM_RESEARCH_TOKEN` is not passed to them. Configure
+the Hermes provider in its own user profile rather than relying on the
+adapter's environment.
 Set `AIM_RESEARCH_BIND` to a private address reachable from the Utopia
 container and generate a random `AIM_RESEARCH_TOKEN` of at least 32 characters.
 Then run `systemctl --user daemon-reload` and
@@ -19,7 +28,9 @@ Configure Utopia with `UTOPIA_HERMES_MCP_URL` (the private `/mcp` endpoint),
 `UTOPIA_RESEARCH_TRUSTED_DOMAINS`. The last variable is a comma-separated
 allowlist such as `antaranews.com:2,idx.co.id:1`; a hostname outside the list
 cannot be promoted into KB evidence. Government `go.id` and `gov.id` domains
-are tier 1 by default. Keep the adapter off public ingress.
+are tier 1 by default. Update the skill's source-priority list when this
+allowlist changes so Hermes prefers domains Utopia can accept. Keep the
+adapter off public ingress.
 
 Useful checks:
 
