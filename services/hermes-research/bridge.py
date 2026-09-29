@@ -132,10 +132,15 @@ details from proposed claims. Prefer primary/company/stock-exchange/government
 sources, then independent established reporting. For each proposed claim obtain
 one primary source or two independent credible sources. An allegation is never
 an established fact. Search snippets alone are not fetched source text.
-Make each claim text a short exact passage from a supporting source quotation
-when possible. Keep the original language and wording; do not translate or
-paraphrase a quotation into a new factual assertion. Every quote must occur in
-the actual page text at its URL, not just in search results.
+Make each claim text a short exact passage from a supporting source quotation.
+Do not summarize several facts into one claim. The claim text must be a
+contiguous verbatim span of at least one quote, and that quote must be a
+contiguous verbatim span of the fetched page. Copy the original language and
+wording; never translate, paraphrase, or add inferred details. If you cannot
+find such a passage, omit that claim. Every quote must occur in the actual
+page text at its URL, not just in search results.
+Never insert ellipses to join distant passages. Skip pages that return an
+access-denied response or whose full text you cannot fetch directly.
 Return ONLY a JSON object, no surrounding explanation, with this schema:
 {"sources":[{"url":"https://...","title":"...","text":"actual fetched text containing the quotes","published_at":"ISO date if known, else empty"}],
  "claims":[{"text":"a short precise supported claim","subject":"full entity name","subject_type":"PERSON or ORGANIZATION","predicate":"relationship or property","object":"entity or value","quotes":[{"url":"same URL as sources","quote":"verbatim passage supporting the whole claim"}]}]}

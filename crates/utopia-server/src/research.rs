@@ -565,6 +565,23 @@ fn normalized(s: &str) -> String {
         .join(" ")
         .to_lowercase()
 }
+
+// The independently fetched HTML is converted to Markdown before checking a
+// quotation. Formatting such as *emphasis* must not invalidate the same words.
+fn evidence_words(s: &str) -> String {
+    s.split(|c: char| !c.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .map(str::to_lowercase)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn evidence_contains(haystack: &str, needle: &str) -> bool {
+    let needle = evidence_words(needle);
+    !needle.is_empty()
+        && format!(" {} ", evidence_words(haystack)).contains(&format!(" {needle} "))
+}
+
 fn uncertain(s: &str) -> bool {
     let s = s.to_lowercase();
     [
@@ -590,7 +607,7 @@ fn supported(claim: &RawClaim, source: &RawSource, fetched: &str) -> bool {
     claim.quotes.iter().any(|q| {
         q.url == source.url
             && q.quote.chars().count() >= 20
-            && normalized(fetched).contains(&normalized(&q.quote))
+            && evidence_contains(fetched, &q.quote)
     })
 }
 
@@ -711,7 +728,7 @@ async fn accept_result(
                         .iter()
                         .any(|(u, _, _): &(String, RawSource, RawQuote)| u == &q.url)
                 {
-                    if !normalized(&q.quote).contains(&normalized(&claim.text)) {
+                    if !evidence_contains(&q.quote, &claim.text) {
                         if semantic_checks >= 24 {
                             continue;
                         }
@@ -737,6 +754,12 @@ async fn accept_result(
         };
         let reason = if decision == "accepted" {
             "Quote verified against fetched public page; source threshold met"
+        } else if supported_sources.is_empty() && !claim.quotes.iter().any(|q| tier(&q.url) < 4) {
+            "No quoted source has a trusted domain"
+        } else if supported_sources.is_empty()
+            && !claim.quotes.iter().any(|q| fetched.contains_key(&q.url))
+        {
+            "Trusted quoted source could not be fetched independently"
         } else if supported_sources.is_empty() {
             "No independently fetched quotation entailed this claim"
         } else {
@@ -840,6 +863,14 @@ async fn accept_result(
     Ok(())
 }
 
+fn ingestion_pending(rows: &[(String, String)], retrying: bool) -> bool {
+    retrying
+        || rows.iter().any(|(status, graph)| {
+            !["ready", "failed"].contains(&status.as_str())
+                || (status == "ready" && !["done", "failed", "skipped"].contains(&graph.as_str()))
+        })
+}
+
 async fn finalize(app: &AppState, job_id: Uuid, kb_id: Uuid) -> Result<()> {
     let rows: Vec<(String,String)> = sqlx::query_as("SELECT d.status,d.graph_status FROM documents d JOIN research_jobs r ON r.id=$1 WHERE d.id=ANY(r.document_ids) AND d.kb_id=$2")
         .bind(job_id).bind(kb_id).fetch_all(&app.pool).await?;
@@ -853,10 +884,19 @@ async fn finalize(app: &AppState, job_id: Uuid, kb_id: Uuid) -> Result<()> {
         .await?;
         return Ok(());
     }
-    if rows.iter().any(|(s, g)| {
-        !["ready", "failed"].contains(&s.as_str())
-            || (s == "ready" && !["done", "failed", "skipped"].contains(&g.as_str()))
-    }) {
+    // Extraction can temporarily mark graph_status=failed while its deferred
+    // job is queued for retry. That status is not terminal until the job stops.
+    let retrying: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM research_jobs r
+         JOIN LATERAL unnest(r.document_ids) d(id) ON true
+         JOIN jobs j ON j.payload->>'document_id'=d.id::text
+         WHERE r.id=$1 AND j.kind IN ('process_document','extract_document')
+           AND j.status IN ('queued','running'))",
+    )
+    .bind(job_id)
+    .fetch_one(&app.pool)
+    .await?;
+    if ingestion_pending(&rows, retrying) {
         let created: DateTime<Utc> =
             sqlx::query_scalar("SELECT created_at FROM research_jobs WHERE id=$1")
                 .bind(job_id)
@@ -934,6 +974,48 @@ mod tests {
             &source,
             "The page says something else entirely."
         ));
+    }
+    #[test]
+    fn markdown_formatting_does_not_hide_an_exact_quotation() {
+        let source = RawSource {
+            url: "https://setkab.go.id/example".into(),
+            title: "Remarks".into(),
+            text: String::new(),
+            published_at: None,
+        };
+        let quote = "And by saying bismillahirrahmanirrahim, I hereby inaugurate the plant.";
+        let claim = RawClaim {
+            text: quote.into(),
+            subject: "The plant".into(),
+            subject_type: "ORGANIZATION".into(),
+            predicate: "inaugurated".into(),
+            object: "plant".into(),
+            quotes: vec![RawQuote {
+                url: source.url.clone(),
+                quote: quote.into(),
+            }],
+        };
+        assert!(supported(
+            &claim,
+            &source,
+            "And by saying *bismillahirrahmanirrahim*, I hereby inaugurate the plant."
+        ));
+        assert!(!supported(
+            &claim,
+            &source,
+            "And by saying *bismillahirrahmanirrahim*, I hereby inaugurate another plant."
+        ));
+        assert!(!evidence_contains(
+            "Ann founded the company",
+            "Anne founded the company"
+        ));
+    }
+    #[test]
+    fn deferred_extraction_is_not_a_terminal_research_failure() {
+        let rows = vec![("ready".into(), "failed".into())];
+        assert!(ingestion_pending(&rows, true));
+        assert!(!ingestion_pending(&rows, false));
+        assert!(!ingestion_pending(&[("ready".into(), "done".into())], false));
     }
     #[test]
     fn unlisted_domains_remain_staged() {
