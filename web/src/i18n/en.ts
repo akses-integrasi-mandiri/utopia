@@ -766,6 +766,32 @@ export const en = {
     cancel: "Cancel",
     // 这条回答背后一条来源都没有（#547）。是事实陈述，所以每条都挂，不猜哪条该挂
     noSources: "No sources consulted",
+    /* 联网调研（人审批制）：回答写完之后评估知识覆盖，不够才挂这张卡，
+       「联网调研」按钮永远要人亲手点——没有自动外网调研 */
+    researchTitle: "AIM's knowledge may not cover this question",
+    researchInternet: "RESEARCH INTERNET",
+    researchUnavailable: "Internet research isn't configured for this knowledge base.",
+    researchError: "Couldn't assess knowledge coverage",
+    researchRetry: "Retry research",
+    researchFailed: "Research failed",
+    researchPartial: "Research finished with partial results",
+    researchCounts: (found: number, ingested: number) =>
+      `${found} sources found · ${ingested} documents ingested`,
+    researchStates: {
+      QUEUED: "Queued",
+      PLANNING: "Planning",
+      SEARCHING: "Searching the web",
+      CRAWLING: "Fetching pages",
+      EXTRACTING: "Extracting content",
+      VALIDATING: "Validating findings",
+      ENTITY_RESOLUTION: "Resolving entities",
+      READY_FOR_INGESTION: "Ready to ingest",
+      INGESTING: "Ingesting",
+      REQUERYING: "Asking again",
+      COMPLETED: "Completed",
+      FAILED: "Failed",
+      PARTIAL: "Partial",
+    },
   },
   graph: {
     // 还没判出类型的实体（0009）。不是一个类，是"这一格还空着"

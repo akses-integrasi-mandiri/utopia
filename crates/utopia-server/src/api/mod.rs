@@ -16,6 +16,7 @@ mod members_routes;
 mod oidc_routes;
 pub(crate) mod ontology_routes;
 mod review_routes;
+mod research_routes;
 mod rig_model;
 pub(crate) mod rule_routes;
 mod search_routes;
@@ -157,6 +158,9 @@ pub fn router(state: AppState, cfg: &AppConfig) -> Router {
         )
         // 四个页面的空状态共用的一步判断（#313）
         .route("/kbs/{id}/readiness", get(kbs::readiness))
+        .route("/kbs/{id}/research/coverage", post(research_routes::coverage))
+        .route("/kbs/{id}/research", get(research_routes::list).post(research_routes::create))
+        .route("/kbs/{id}/research/{job_id}", get(research_routes::get))
         .route("/kbs/{id}/members", get(kbs::members))
         .route("/kbs/{id}/audit", get(kbs::audit_log))
         // 整库导出为 RDF（0020）。viewer 就能导：能看见的东西本来就能一条条抄走，

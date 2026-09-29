@@ -1253,6 +1253,55 @@ export interface ConversationMessage {
   created_at: string;
 }
 
+/** 知识覆盖评估：这个问题用库里的东西答得够不够（联网调研前置判据）。 */
+export interface ResearchCoverage {
+  sufficient: boolean;
+  reason: string;
+  source_count: number;
+  identity: number;
+  relationships: number;
+  recency: number;
+  conflicts: number;
+  confidence: number;
+  /** 这个库没有配置联网调研：卡片显示「不可用」，不给按钮 */
+  available: boolean;
+}
+
+/** 联网调研任务的流水线状态。 */
+export type ResearchJobState =
+  | "QUEUED"
+  | "PLANNING"
+  | "SEARCHING"
+  | "CRAWLING"
+  | "EXTRACTING"
+  | "VALIDATING"
+  | "ENTITY_RESOLUTION"
+  | "READY_FOR_INGESTION"
+  | "INGESTING"
+  | "REQUERYING"
+  | "COMPLETED"
+  | "FAILED"
+  | "PARTIAL";
+
+/** 联网调研任务（审批通过后落库，进度轮询它）。 */
+export interface ResearchJob {
+  id: string;
+  kb_id: string;
+  conversation_id: string | null;
+  query: string;
+  state: ResearchJobState;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+  sources_discovered: number;
+  sources_accepted: number;
+  sources_rejected: number;
+  duplicates: number;
+  ingested_documents: number;
+  document_ids: string[];
+  coverage?: ResearchCoverage;
+}
+
 /** 告警中心的一组（0005）：**连着的、同类的几次故障**。
  *
  * 存储那边仍是一次故障一行，折叠在服务端读的时候做——这样翻页数的是组，
@@ -2397,6 +2446,33 @@ export const conversationsApi = {
     request<{ ok: boolean }>(`/api/v1/kbs/${kbId}/conversations/${id}`, {
       method: "DELETE",
     }),
+};
+
+/** 联网调研：覆盖评估 → 人审批建任务 → 轮询进度 → 完成后重问原问题。 */
+export const researchApi = {
+  /** 评一下这个问题库里答不答得动（写完回答之后调，问的是最后那句人话） */
+  coverage: (kbId: string, body: { query: string; conversation_id?: string }) =>
+    request<ResearchCoverage>(`/api/v1/kbs/${kbId}/research/coverage`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  /** 人点了「联网调研」才走这里：approved 恒为 true，request_id 每次点击/重试
+   *  重新生成（幂等键跟着这一次意图走） */
+  create: (
+    kbId: string,
+    body: { query: string; conversation_id?: string; approved: true; request_id: string },
+  ) =>
+    request<ResearchJob>(`/api/v1/kbs/${kbId}/research`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  /** 这个会话已有的调研任务：恢复页面时按问题认领，别重复调研同一个问题 */
+  list: (kbId: string, conversationId: string) =>
+    request<ResearchJob[]>(
+      `/api/v1/kbs/${kbId}/research?conversation_id=${conversationId}`,
+    ),
+  get: (kbId: string, jobId: string) =>
+    request<ResearchJob>(`/api/v1/kbs/${kbId}/research/${jobId}`),
 };
 
 export interface ChatHandlers {

@@ -66,6 +66,7 @@ import {
 } from "../liveAnswer";
 import { NodCard } from "./PendingFacts";
 import { NextStep, nextStep, useReadiness } from "./NextStep";
+import { ResearchCard, researchQueryFor } from "../components/ResearchCard";
 
 /* `Turn` 定义在 liveAnswer 里：进行中的那一次也是一串 Turn，
    而它必须活得比这个组件长（见那个文件顶上的说明） */
@@ -121,6 +122,10 @@ export function Chat() {
      一个正在别处生成的回答不该改变这里的任何东西 */
   const streaming = liveHere?.streaming ?? false;
   const shown = liveHere ? liveHere.turns : turns;
+  /* 联网调研要评估的那句人话：得有一句真说完了的回答（流式中不算数，
+     招呼/免证据的工具轮不挂卡——判据全在 researchQueryFor 里）。
+     换会话/换库时它跟着 `shown` 与流式状态自然变，卡片键控也随之切走 */
+  const researchQuery = streaming ? null : researchQueryFor(shown);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ConversationRow | null>(null);
   // 会话搜索。**搜标题也搜正文**——人记得住的往往是问过的那句话
@@ -337,12 +342,11 @@ export function Chat() {
     if (id === activeId) newChat();
   };
 
-  const send = () => {
-    const q = input.trim();
-    if (!q || streaming || !kb) return;
-    setInput("");
-    sessionStorage.removeItem(DRAFT_KEY);
-    if (inputRef.current) inputRef.current.style.height = "auto";
+  /** 发出一个问题。返回 false = 被挡住（空/正在流式/库没就绪），什么都没发生。
+   *  联网调研完成后自动重问原问题也走这里——同一条发送管线，引用照常 */
+  const sendQuery = (raw: string): boolean => {
+    const q = raw.trim();
+    if (!q || streaming || !kb) return false;
 
     /* **结果留在 store 里，不交回组件状态。**
        交回去要经过一个 `setTurns`，而流结束时这个组件可能早就卸载了——
@@ -392,6 +396,14 @@ export function Chat() {
     );
     // streamChat 的 abort 要等它返回才有；真 abort 到手前，句柄上先占着空操作
     handle.setAbort(abort);
+    return true;
+  };
+
+  const send = () => {
+    if (!sendQuery(input)) return;
+    setInput("");
+    sessionStorage.removeItem(DRAFT_KEY);
+    if (inputRef.current) inputRef.current.style.height = "auto";
   };
 
   /* Composer 卡：新对话首屏居中出场，进入对话后停靠底部（同一块 JSX 两处复用） */
@@ -678,6 +690,14 @@ export function Chat() {
                 {shown.map((t, i) => (
                   <TurnView key={i} turn={t} live={streaming && i === shown.length - 1} />
                 ))}
+                <ResearchCard
+                  kbId={kb?.id ?? ""}
+                  conversationId={currentId ?? null}
+                  query={researchQuery}
+                  canWrite={kb?.my_role !== "viewer"}
+                  streaming={streaming}
+                  onRequery={sendQuery}
+                />
                 <div ref={bottomRef} />
               </div>
             </div>

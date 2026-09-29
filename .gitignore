@@ -38,3 +38,9 @@ _*.txt
 /scripts/bench/corpora/contracts/edgar/
 /scripts/bench/corpora/contracts/cuad/
 /scripts/bench/corpora/contracts/lease-kb-*.json
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Local multi-agent task logs
+/.agent-team/
