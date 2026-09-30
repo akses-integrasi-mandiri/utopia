@@ -68,6 +68,9 @@ services:
       # 请求变慢而不是报错说池子不够，所以调并发时别忘了它。
       # 上调前先确认 Postgres 的 max_connections（默认 100）容得下。
       UTOPIA_DB_MAX_CONNECTIONS: ${UTOPIA_DB_MAX_CONNECTIONS:-32}
+      UTOPIA_HERMES_MCP_URL: ${UTOPIA_HERMES_MCP_URL:-}
+      UTOPIA_HERMES_MCP_TOKEN: ${UTOPIA_HERMES_MCP_TOKEN:-}
+      UTOPIA_RESEARCH_TRUSTED_DOMAINS: ${UTOPIA_RESEARCH_TRUSTED_DOMAINS:-}
     volumes:
       # 原始文件（files/）与全文索引（index/）。不挂出来的话，容器一重建
       # 它们就没了，而库里的 documents 记录还在——引用全断且不报错。

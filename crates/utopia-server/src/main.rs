@@ -27,6 +27,7 @@ mod pipeline;
 mod predicate_match;
 mod query_engine;
 mod rdf;
+mod research;
 mod retrieval;
 mod rss_full_content;
 mod state;
@@ -388,6 +389,12 @@ async fn dispatch(st: &state::AppState, job: &utopia_store::jobs::Job) -> anyhow
         "process_document" => {
             let id = payload_document_id(&job.payload)?;
             pipeline::process_document(st, id).await
+        }
+        "research_acquire" | "research_poll" => {
+            let id: Uuid = job.payload.get("job_id").and_then(|v| v.as_str())
+                .and_then(|v| v.parse().ok())
+                .ok_or_else(|| anyhow::anyhow!("research job missing job_id"))?;
+            research::dispatch(st, id, job.kind == "research_poll").await
         }
         "memory_ingest" => {
             let id = payload_document_id(&job.payload)?;

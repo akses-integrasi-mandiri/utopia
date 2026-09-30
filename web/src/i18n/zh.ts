@@ -701,6 +701,32 @@ export const zh: Strings = {
     deleteBtn: "删除",
     cancel: "取消",
     noSources: "未引用任何来源",
+    /* 联网调研（人审批制）：回答写完后评估知识覆盖，不够才挂这张卡，
+       「联网调研」按钮永远要人亲手点——没有自动外网调研 */
+    researchTitle: "AIM 的知识可能覆盖不了这个问题",
+    researchInternet: "联网调研",
+    researchUnavailable: "这个知识库没有配置联网调研。",
+    researchError: "无法评估知识覆盖情况",
+    researchRetry: "重试调研",
+    researchFailed: "调研失败",
+    researchPartial: "调研只完成了一部分",
+    researchCounts: (found: number, ingested: number) =>
+      `找到 ${found} 个来源 · 已入库 ${ingested} 篇文档`,
+    researchStates: {
+      QUEUED: "排队中",
+      PLANNING: "规划调研",
+      SEARCHING: "全网搜索",
+      CRAWLING: "抓取网页",
+      EXTRACTING: "提取内容",
+      VALIDATING: "校验结果",
+      ENTITY_RESOLUTION: "实体消歧",
+      READY_FOR_INGESTION: "待入库",
+      INGESTING: "入库中",
+      REQUERYING: "重新提问",
+      COMPLETED: "已完成",
+      FAILED: "失败",
+      PARTIAL: "部分完成",
+    },
   },
   graph: {
     untyped: "未分类",

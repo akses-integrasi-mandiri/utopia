@@ -1,0 +1,17 @@
+[Unit]
+Description=AIM Hermes research acquisition MCP adapter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/aim-research/bridge.env
+ExecStart=/usr/bin/python3 %h/.local/share/aim-research/bridge.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+KillMode=control-group
+TimeoutStopSec=10
+
+[Install]
+WantedBy=default.target
